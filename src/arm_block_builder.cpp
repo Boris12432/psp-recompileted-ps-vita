@@ -7,12 +7,7 @@ BasicBlock ARMBlockBuilder::build(
     uint32_t address
 )
 {
-    std::cout
-    << "BLOCK BUILDER START: "
-    << std::hex
-    << address
-    << std::dec
-    << "\n";
+
     BasicBlock block;
 
     block.startAddress = address;
@@ -25,6 +20,17 @@ BasicBlock ARMBlockBuilder::build(
     {
         uint32_t instruction =
             memory.read32(pc);
+
+        if (instruction == 0)
+        {
+            block.exit =
+                BlockExit::Fallthrough;
+
+            block.endAddress =
+                pc;
+
+            return block;
+        }
 
         IRInstruction ir =
             ARMDecoder::decode(instruction);
@@ -54,13 +60,6 @@ BasicBlock ARMBlockBuilder::build(
                 else
                     block.exit = BlockExit::ConditionalBranch;
 
-                std::cout
-                << "BLOCK BUILDER START: "
-                << std::hex
-                << address
-                << std::dec
-                << "\n";
-
                 return block;
             }
 
@@ -74,12 +73,6 @@ BasicBlock ARMBlockBuilder::build(
 
                 block.exit = BlockExit::Call;
 
-                std::cout
-                << "BLOCK BUILDER START: "
-                << std::hex
-                << address
-                << std::dec
-                << "\n";
 
                 return block;
             }
@@ -94,12 +87,6 @@ BasicBlock ARMBlockBuilder::build(
                 else
                     block.exit = BlockExit::IndirectBranch;
 
-                std::cout
-                << "BLOCK BUILDER START: "
-                << std::hex
-                << address
-                << std::dec
-                << "\n";
 
                 return block;
             }
