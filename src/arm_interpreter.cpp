@@ -4,6 +4,7 @@
 #include "arm_shifter.h"
 #include "arm_alu.h"
 
+#include <iostream>
 
 // ============================================================
 // Operand2
@@ -1172,6 +1173,88 @@ bool ARMInterpreter::execute(
             return false;
         }
 
+        case IROp::MSR:
+        {
+            uint32_t value =
+                operand2(
+                    ir.operand2,
+                    &shifterCarry
+                );
+
+            /*
+            * Пока работаем только с CPSR.
+            *
+            * SPSR пока не реализуем.
+            */
+
+            if (!ir.psrSPSR)
+            {
+                uint32_t mask = 0;
+
+                // c
+                if (ir.psrFieldMask & 0x1)
+                    mask |= 0x000000FFu;
+
+                // x
+                if (ir.psrFieldMask & 0x2)
+                    mask |= 0x0000FF00u;
+
+                // s
+                if (ir.psrFieldMask & 0x4)
+                    mask |= 0x00FF0000u;
+
+                // f
+                if (ir.psrFieldMask & 0x8)
+                    mask |= 0xFF000000u;
+
+                uint32_t oldCPSR =
+                    cpu.cpsr();
+
+                uint32_t newCPSR =
+                    (oldCPSR & ~mask) |
+                    (value & mask);
+
+                cpu.setCPSR(
+                    newCPSR
+                );
+            }
+
+            return false;
+        }
+
+        case IROp::MRS:
+        {
+            if (ir.psrSPSR)
+            {
+                // SPSR пока не реализован.
+                cpu.r[ir.rd] = 0;
+            }
+            else
+            {
+                cpu.r[ir.rd] =
+                    cpu.cpsr();
+            }
+
+            return false;
+        }
+
+        case IROp::SWI:
+        {
+            uint32_t syscall =
+                ir.operand2.imm;
+
+            // Пока просто перехватываем SWI.
+            // Здесь потом будет обработчик системных вызовов.
+
+            std::cout
+                << "SWI: 0x"
+                << std::hex
+                << syscall
+                << std::dec
+                << '\n';
+
+            return false;
+        }
 
         // ====================================================
         // B

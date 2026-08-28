@@ -40,6 +40,18 @@ private:
         uint32_t instruction
     );
 
+    static bool isSWI(
+        uint32_t instruction
+    );
+
+    static bool isMSR(
+        uint32_t instruction
+    );
+
+    static bool isMRS(
+        uint32_t instruction
+    );
+
     static bool isBranch(
         uint32_t instruction
     );
@@ -69,6 +81,17 @@ private:
         uint32_t instruction
     );
 
+    static IRInstruction decodeMRS(
+        uint32_t instruction
+    );
+
+    static IRInstruction decodeMSR(
+        uint32_t instruction
+    );
+
+    static IRInstruction decodeSWI(
+        uint32_t instruction
+    );
 
     static IRInstruction decodeBranch(
         uint32_t instruction

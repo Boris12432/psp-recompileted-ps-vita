@@ -58,6 +58,73 @@ bool ARMDecoder::isBX(
         == 0x012FFF10u;
 }
 
+bool ARMDecoder::isMSR(
+    uint32_t instruction
+)
+{
+    /*
+     * MSR register:
+     *
+     * cond 00010 0 field_mask 1111 00000000 Rm
+     *
+     * MSR immediate:
+     *
+     * cond 00110 0 field_mask 1111 rotate imm8
+     */
+
+    // Rn must be 1111
+    if (((instruction >> 16) & 0xF) != 0xF)
+        return false;
+
+    // Bits 11:4 must be 00000000
+    if (((instruction >> 4) & 0xFF) != 0)
+        return false;
+
+    uint32_t op =
+        (instruction >> 23) & 0x1F;
+
+    // MSR register
+    if (op == 0b00010)
+        return true;
+
+    // MSR immediate
+    if (op == 0b00110)
+        return true;
+
+    return false;
+}
+
+bool ARMDecoder::isMRS(
+    uint32_t instruction
+)
+{
+    /*
+     * MRS:
+     *
+     * cond 00010 0 00 1111 Rd 000000000000
+     *
+     * Bits:
+     *
+     * 27:23 = 00010
+     * 21:16 = 000000
+     * 15:12 = Rd
+     * 11:0  = 000000000000
+     */
+
+    // Bits 27:23 must be 00010
+    if (((instruction >> 23) & 0x1F) != 0b00010)
+        return false;
+
+    // Bits 21:16 must be 000000
+    if (((instruction >> 16) & 0x3F) != 0)
+        return false;
+
+    // Bits 11:0 must be zero
+    if ((instruction & 0xFFF) != 0)
+        return false;
+
+    return true;
+}
 
 bool ARMDecoder::isBranch(
     uint32_t instruction
@@ -406,6 +473,22 @@ IRInstruction ARMDecoder::decodeMultiply(
 // BX
 // ============================================================
 
+
+bool ARMDecoder::isSWI(
+    uint32_t instruction
+)
+{
+    /*
+     * ARM SWI / SVC:
+     *
+     * bits 27:24 = 1111
+     */
+
+    return
+        ((instruction >> 24) & 0xF)
+        == 0xF;
+}
+
 bool ARMDecoder::isMultiply(
     uint32_t instruction
 )
@@ -435,6 +518,7 @@ bool ARMDecoder::isMultiply(
     return true;
 }
 
+
 IRInstruction ARMDecoder::decodeBX(
     uint32_t instruction
 )
@@ -453,6 +537,101 @@ IRInstruction ARMDecoder::decodeBX(
     ir.rm =
         instruction & 0xF;
 
+
+    return ir;
+}
+
+IRInstruction ARMDecoder::decodeMRS(
+    uint32_t instruction
+)
+{
+    IRInstruction ir;
+
+    ir.op =
+        IROp::MRS;
+
+    ir.condition =
+        condition(instruction);
+
+    // --------------------------------------------------------
+    // CPSR / SPSR
+    // --------------------------------------------------------
+
+    ir.psrSPSR =
+        ((instruction >> 22) & 1) != 0;
+
+    // --------------------------------------------------------
+    // Destination register
+    // --------------------------------------------------------
+
+    ir.rd =
+        (instruction >> 12) & 0xF;
+
+    return ir;
+}
+
+IRInstruction ARMDecoder::decodeMSR(
+    uint32_t instruction
+)
+{
+    IRInstruction ir;
+
+    ir.op =
+        IROp::MSR;
+
+    ir.condition =
+        condition(instruction);
+
+    // --------------------------------------------------------
+    // CPSR / SPSR
+    // --------------------------------------------------------
+
+    ir.psrSPSR =
+        ((instruction >> 22) & 1) != 0;
+
+    // --------------------------------------------------------
+    // Field mask
+    //
+    // bit 16 = c
+    // bit 17 = x
+    // bit 18 = s
+    // bit 19 = f
+    // --------------------------------------------------------
+
+    ir.psrFieldMask =
+        static_cast<uint8_t>(
+            (instruction >> 16) & 0xF
+        );
+
+    // --------------------------------------------------------
+    // Operand
+    // --------------------------------------------------------
+
+    bool immediate =
+        ((instruction >> 25) & 1) != 0;
+
+    ir.operand2.immediate =
+        immediate;
+
+    if (immediate)
+    {
+        uint32_t imm8 =
+            instruction & 0xFF;
+
+        uint32_t rotate =
+            ((instruction >> 8) & 0xF) * 2;
+
+        ir.operand2.imm =
+            ror32(
+                imm8,
+                rotate
+            );
+    }
+    else
+    {
+        ir.operand2.rm =
+            instruction & 0xF;
+    }
 
     return ir;
 }
@@ -1234,6 +1413,33 @@ IRInstruction ARMDecoder::decodeHalfwordTransfer(
 // Main decoder
 // ============================================================
 
+IRInstruction ARMDecoder::decodeSWI(
+    uint32_t instruction
+)
+{
+    IRInstruction ir;
+
+    ir.op =
+        IROp::SWI;
+
+    ir.condition =
+        condition(instruction);
+
+    /*
+     * SWI immediate:
+     *
+     * bits 23:0
+     */
+
+    ir.operand2.immediate =
+        true;
+
+    ir.operand2.imm =
+        instruction & 0x00FFFFFFu;
+
+    return ir;
+}
+
 IRInstruction ARMDecoder::decode(
     uint32_t instruction
 )
@@ -1256,6 +1462,20 @@ IRInstruction ARMDecoder::decode(
         return decodeBX(
             instruction
         );
+    }
+
+    if (isMRS(instruction))
+    {
+    return decodeMRS(
+        instruction
+    );  
+    }
+
+    if (isMSR(instruction))
+    {
+    return decodeMSR(
+        instruction
+    );
     }
 
     if (isMultiply(instruction))
@@ -1311,6 +1531,20 @@ IRInstruction ARMDecoder::decode(
     }
 
 
+    if (isMRS(instruction))
+    {
+        return decodeMRS(
+            instruction
+        );
+    }
+
+    if (isSWI(instruction))
+    {
+        return decodeSWI(
+            instruction
+        );
+    }
+
     // --------------------------------------------------------
     // Data processing
     // --------------------------------------------------------
@@ -1329,8 +1563,7 @@ IRInstruction ARMDecoder::decode(
 
     IRInstruction ir;
 
-    ir.op =
-        IROp::NOP;
+    ir.op = IROp::NOP;
 
 
     return ir;

@@ -40,6 +40,10 @@ enum class IROp
     BL,
     BX,
 
+    MRS,
+    MSR,
+    SWI,
+
     NOP
 };
 
@@ -187,8 +191,12 @@ struct IRInstruction
     // LDRSB -> true
     // LDRSH -> true
     bool signExtend = false;
-    
+
     uint32_t address = 0;
 
     uint8_t width = 4;
+
+    bool psrSPSR = false;
+
+    uint8_t psrFieldMask = 0;
 };

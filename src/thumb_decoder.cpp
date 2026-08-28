@@ -256,3 +256,227 @@ IRInstruction ThumbDecoder::decodeALU(
 
     return ir;
 }
+IRInstruction ThumbDecoder::decodeHighRegister(
+    uint16_t instruction
+)
+{
+    IRInstruction ir;
+
+    ir.width =
+        2;
+
+    uint32_t opcode =
+        (instruction >> 8) & 0x3;
+
+    uint32_t h1 =
+        (instruction >> 7) & 1;
+
+    uint32_t h2 =
+        (instruction >> 6) & 1;
+
+    uint32_t rs =
+        (instruction >> 3) & 0x7;
+
+    uint32_t rd =
+        instruction & 0x7;
+
+    rd |= h1 << 3;
+    rs |= h2 << 3;
+
+    ir.rd =
+        rd;
+
+    ir.rn =
+        rd;
+
+    ir.operand2.immediate =
+        false;
+
+    ir.operand2.rm =
+        rs;
+
+
+    switch (opcode)
+    {
+        case 0:
+            ir.op = IROp::ADD;
+            break;
+
+        case 1:
+            ir.op = IROp::CMP;
+            ir.rd = -1;
+            ir.setFlags = true;
+            break;
+
+        case 2:
+            ir.op = IROp::MOV;
+            break;
+
+        case 3:
+
+            // BX
+            ir.op =
+                IROp::BX;
+
+            ir.rm =
+                rs;
+
+            break;
+    }
+
+    return ir;
+}
+IRInstruction ThumbDecoder::decodeBranch(
+    uint16_t instruction
+)
+{
+    IRInstruction ir;
+
+    ir.op =
+        IROp::B;
+
+    ir.width =
+        2;
+
+    uint32_t imm11 =
+        instruction & 0x7FF;
+
+    int32_t offset =
+        static_cast<int32_t>(
+            imm11 << 1
+        );
+
+    if (offset & 0x1000)
+    {
+        offset |=
+            ~0x1FFF;
+    }
+
+    ir.branchOffset =
+        offset;
+
+    return ir;
+}
+IRInstruction ThumbDecoder::decode(
+    uint16_t instruction
+)
+{
+    // --------------------------------------------------------
+    // MOVS Rd,#imm8
+    // --------------------------------------------------------
+
+    if (
+        (instruction & 0xF800) ==
+        0x2000
+    )
+    {
+        return decodeMoveImmediate(
+            instruction
+        );
+    }
+
+
+    // --------------------------------------------------------
+    // CMP Rn,#imm8
+    // --------------------------------------------------------
+
+    if (
+        (instruction & 0xF800) ==
+        0x2800
+    )
+    {
+        return decodeCompareImmediate(
+            instruction
+        );
+    }
+
+
+    // --------------------------------------------------------
+    // ADDS Rd,#imm8
+    // --------------------------------------------------------
+
+    if (
+        (instruction & 0xF800) ==
+        0x3000
+    )
+    {
+        return decodeAddImmediate(
+            instruction
+        );
+    }
+
+
+    // --------------------------------------------------------
+    // SUBS Rd,#imm8
+    // --------------------------------------------------------
+
+    if (
+        (instruction & 0xF800) ==
+        0x3800
+    )
+    {
+        return decodeSubImmediate(
+            instruction
+        );
+    }
+
+
+    // --------------------------------------------------------
+    // ALU
+    // --------------------------------------------------------
+
+    if (
+        (instruction & 0xFC00) ==
+        0x4000
+    )
+    {
+        return decodeALU(
+            instruction
+        );
+    }
+
+
+    // --------------------------------------------------------
+    // High register operations / BX
+    // --------------------------------------------------------
+
+    if (
+        (instruction & 0xFC00) ==
+        0x4400
+    )
+    {
+        return decodeHighRegister(
+            instruction
+        );
+    }
+
+
+    // --------------------------------------------------------
+    // Unconditional B
+    // --------------------------------------------------------
+
+    if (
+        (instruction & 0xF800) ==
+        0xE000
+    )
+    {
+        return decodeBranch(
+            instruction
+        );
+    }
+
+
+    // --------------------------------------------------------
+    // Unknown
+    // --------------------------------------------------------
+
+    IRInstruction ir;
+
+    ir.op =
+        IROp::NOP;
+
+    ir.width =
+        2;
+
+    return ir;
+}
