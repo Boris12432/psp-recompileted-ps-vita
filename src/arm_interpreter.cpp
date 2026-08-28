@@ -3,6 +3,7 @@
 #include "arm_condition.h"
 #include "arm_shifter.h"
 #include "arm_alu.h"
+#include "hle.h"
 
 #include <iostream>
 
@@ -1240,18 +1241,10 @@ bool ARMInterpreter::execute(
 
         case IROp::SWI:
         {
-            uint32_t syscall =
-                ir.operand2.imm;
-
-            // Пока просто перехватываем SWI.
-            // Здесь потом будет обработчик системных вызовов.
-
-            std::cout
-                << "SWI: 0x"
-                << std::hex
-                << syscall
-                << std::dec
-                << '\n';
+            HLE::handleSWI(
+                cpu,
+                ir.swiNumber
+            );
 
             return false;
         }

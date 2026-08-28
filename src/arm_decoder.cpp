@@ -1425,15 +1425,6 @@ IRInstruction ARMDecoder::decodeSWI(
     ir.condition =
         condition(instruction);
 
-    /*
-     * SWI immediate:
-     *
-     * bits 23:0
-     */
-
-    ir.operand2.immediate =
-        true;
-
     ir.operand2.imm =
         instruction & 0x00FFFFFFu;
 

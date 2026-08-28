@@ -142,6 +142,10 @@ struct IRInstruction
 
     uint16_t registerList = 0;
 
+    uint32_t swiNumber = 0;
+    
+    uint32_t functionId = 0;
+
 
     // CPSR
     bool setFlags = false;
