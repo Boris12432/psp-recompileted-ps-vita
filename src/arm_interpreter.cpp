@@ -1187,7 +1187,7 @@ bool ARMInterpreter::execute(
             cpu.r[15] =
                 instructionPC +
                 8 +
-                ir.branchOffset;
+                static_cast<uint32_t>(ir.branchOffset);
 
             return true;
         }

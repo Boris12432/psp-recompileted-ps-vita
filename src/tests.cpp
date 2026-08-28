@@ -1334,6 +1334,7 @@ int main()
 
     branch.branchOffset =
         8;
+    branch.address = 0x1000;
 
     interpreter.execute(branch);
 
@@ -1357,8 +1358,9 @@ int main()
     branchBack.condition =
         Condition::AL;
 
-    branchBack.branchOffset =
-        static_cast<int32_t>(-8);
+    branchBack.branchOffset = -8;
+
+    branchBack.address = 0x2000;
 
     interpreter.execute(branchBack);
 
@@ -1387,6 +1389,8 @@ int main()
     beq.branchOffset =
         0x20;
 
+    beq.address = 0x3000;
+    
     interpreter.execute(beq);
 
     TEST(
@@ -1430,7 +1434,10 @@ int main()
 
     cpu.Z = false;
 
+    bne.address = 0x3000;
+    
     interpreter.execute(bne);
+
 
     TEST(
         "BNE executes when Z=0",
@@ -1457,6 +1464,8 @@ int main()
     bl.branchOffset =
         0x100;
 
+    bl.address = 0x4000;
+
     interpreter.execute(bl);
 
     TEST(
@@ -1476,6 +1485,8 @@ int main()
 
     cpu.r[15] = 0x5000;
 
+    bl.address = 0x5000;
+    
     bl.branchOffset =
         static_cast<int32_t>(-0x100);
 

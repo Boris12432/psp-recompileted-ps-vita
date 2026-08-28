@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\Andre\OneDrive\Рабочий стол\psp lexer ps vita\psp recompileted ps vita\src\vita_self.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\Andre\OneDrive\Рабочий стол\psp lexer ps vita\psp recompileted ps vita\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{179BA972-ED0E-30E2-9783-C2D7832AF544}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

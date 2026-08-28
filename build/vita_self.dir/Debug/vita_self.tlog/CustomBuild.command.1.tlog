@@ -1,0 +1,10 @@
+^C:\USERS\ANDRE\ONEDRIVE\РАБОЧИЙ СТОЛ\PSP LEXER PS VITA\PSP RECOMPILETED PS VITA\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" "-SC:/Users/Andre/OneDrive/Рабочий стол/psp lexer ps vita/psp recompileted ps vita" "-BC:/Users/Andre/OneDrive/Рабочий стол/psp lexer ps vita/psp recompileted ps vita/build" --check-stamp-file "C:/Users/Andre/OneDrive/Рабочий стол/psp lexer ps vita/psp recompileted ps vita/build/CMakeFiles/generate.stamp"
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
