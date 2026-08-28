@@ -1,11 +1,14 @@
 #include <cstdio>
 #include <cstdint>
 #include <cstdlib>
+#include <iostream>
 
 #include "arm_engine.h"
 #include "arm_cpu.h"
 #include "arm_decoder.h"
 #include "arm_interpreter.h"
+#include "arm_block_builder.h"
+#include "arm_cfg.h"
 
 static int tests = 0;
 static int passed = 0;
@@ -33,6 +36,78 @@ static void execute(
     interpreter.execute(ir);
 }
 
+static void testCFG()
+{
+    std::cout
+        << "========================================\n"
+        << "             CFG TESTS\n"
+        << "========================================\n";
+
+    ARMCPU cpu;
+
+    SimpleMemory memory(1024 * 1024);  
+
+    ARMBlockBuilder builder(
+        memory
+    );
+
+    ARMControlFlowGraph cfg(
+        builder
+    );
+
+    /*
+     * 0x1000:
+     *
+     * B +8
+     *
+     * ARM branch:
+     * target = PC + 8 + offset
+     *
+     * PC = 0x1000
+     * target = 0x1008 + 8
+     *        = 0x1010
+     */
+
+    memory.write32(
+        0x1000,
+        0xEA000002
+    );
+
+    memory.write32(
+        0x1004,
+        0xE1A00000
+    );
+
+    memory.write32(
+        0x1008,
+        0xE1A01001
+    );
+
+    cfg.build(0x1000);
+
+    const CFGNode* node =
+        cfg.getNode(0x1000);
+
+    TEST(
+        "CFG entry exists",
+        node != nullptr
+    );
+
+    if (node)
+    {
+        TEST(
+            "CFG entry has branch",
+            node->block.exit ==
+                BlockExit::Branch
+        );
+
+        TEST(
+            "CFG branch target",
+            node->block.branchTarget ==
+                0x1010
+        );
+    }
+}
 
 int main()
 {
@@ -1464,6 +1539,17 @@ int main()
     );
 
     // ============================================================
+    // CFG TESTS
+    // ============================================================
+
+    
+
+
+    // ============================================================
+    // FINAL
+    // ============================================================
+
+    // ============================================================
     // FINAL
     // ============================================================
 
@@ -1477,6 +1563,8 @@ int main()
     );
 
     printf("========================================\n");
+    
+    testCFG();
 
     getchar();
 
