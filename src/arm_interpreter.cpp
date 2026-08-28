@@ -56,13 +56,15 @@ void ARMInterpreter::setArithmeticFlags(
     cpu.V = overflow;
 }
 
-void ARMInterpreter::execute(
+bool ARMInterpreter::execute(
     const IRInstruction& ir)
 {
     if (!conditionPassed(
             ir.condition,
             cpu))
-        return;
+    {
+        return false;
+    }
 
     bool shifterCarry = cpu.C;
 
@@ -604,7 +606,7 @@ void ARMInterpreter::execute(
             cpu.r[15] +=
                 ir.branchOffset;
 
-            break;
+            return true;
         }
 
         case IROp::BL: {
@@ -615,7 +617,7 @@ void ARMInterpreter::execute(
             cpu.r[15] +=
                 ir.branchOffset;
 
-            break;
+            return true;
         }
 
         case IROp::BX: {
@@ -629,10 +631,12 @@ void ARMInterpreter::execute(
             cpu.r[15] =
                 target & ~1u;
 
-            break;
+            return true;
         }
 
         case IROp::NOP:
             break;
     }
+
+    return false;
 }

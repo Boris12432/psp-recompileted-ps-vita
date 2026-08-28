@@ -7,6 +7,7 @@
 #include "arm_decoder.h"
 #include "ir.h"
 
+
 class ARMInterpreter
 {
 public:
@@ -20,9 +21,22 @@ public:
     {
     }
 
-    void execute(
-        const IRInstruction& instruction
+
+    /*
+     * Выполнить одну IR-инструкцию.
+     *
+     * return true:
+     *     инструкция изменила PC
+     *     (B / BL / BX)
+     *
+     * return false:
+     *     PC должен перейти
+     *     на следующую инструкцию.
+     */
+    bool execute(
+        const IRInstruction& ir
     );
+
 
 private:
 
@@ -30,10 +44,12 @@ private:
 
     ARMMemory& memory;
 
+
     uint32_t operand2(
         const Operand2& op,
         bool* carryOut
     );
+
 
     void setArithmeticFlags(
         uint32_t result,

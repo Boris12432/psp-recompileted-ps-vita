@@ -1,5 +1,6 @@
 #include "arm_engine.h"
 
+
 uint32_t ARMEngine::fetch32(
     uint32_t address
 ) const
@@ -8,63 +9,92 @@ uint32_t ARMEngine::fetch32(
 }
 
 
-void ARMEngine::advancePC()
-{
-    if (cpu.T)
-    {
-        // Thumb state:
-        // инструкции пока будем реализовывать отдельно.
-        cpu.r[15] += 2;
-    }
-    else
-    {
-        // ARM state
-        cpu.r[15] += 4;
-    }
-}
-
-
 bool ARMEngine::step()
 {
-    uint32_t address = cpu.r[15];
+    /*
+     * PC до выполнения инструкции.
+     *
+     * В ARM state CPU при исполнении инструкции
+     * видит PC как address + 8.
+     *
+     * В Thumb state пока используем текущий PC
+     * и размер инструкции 2 байта.
+     */
+
+    uint32_t realPC =
+        cpu.r[15];
+
+
+    // --------------------------------------------------------
+    // Fetch
+    // --------------------------------------------------------
 
     uint32_t instruction =
-        fetch32(address);
+        fetch32(realPC);
+
+
+    // --------------------------------------------------------
+    // Decode
+    // --------------------------------------------------------
 
     IRInstruction ir =
         ARMDecoder::decode(instruction);
 
-    /*
-     * ARM instructions normally see PC as:
-     *
-     *     current_address + 8
-     *
-     * while executing in ARM state.
-     *
-     * Поэтому временно устанавливаем
-     * архитектурное значение PC.
-     */
 
-    uint32_t realPC = cpu.r[15];
+    // --------------------------------------------------------
+    // Architectural PC
+    // --------------------------------------------------------
 
     if (!cpu.T)
     {
+        /*
+         * ARM:
+         *
+         * instruction address = realPC
+         * visible PC          = realPC + 8
+         */
+
         cpu.r[15] =
             realPC + 8;
     }
 
-    interpreter.execute(ir);
 
-    /*
-     * Если инструкция сама не изменила PC,
-     * переходим к следующей.
-     */
+    // --------------------------------------------------------
+    // Execute
+    // --------------------------------------------------------
 
-    if (cpu.r[15] == realPC + 8)
+    bool pcChanged =
+        interpreter.execute(ir);
+
+
+    // --------------------------------------------------------
+    // Sequential execution
+    // --------------------------------------------------------
+
+    if (!pcChanged)
     {
-        cpu.r[15] =
-            realPC + 4;
+        if (cpu.T)
+        {
+            /*
+             * Thumb instruction:
+             * 16-bit = 2 bytes
+             */
+
+            cpu.r[15] =
+                realPC + 2;
+        }
+        else
+        {
+            /*
+             * ARM instruction:
+             * 32-bit = 4 bytes
+             */
+
+            cpu.r[15] =
+                realPC + 4;
+        }
     }
+
 
     return true;
 }
