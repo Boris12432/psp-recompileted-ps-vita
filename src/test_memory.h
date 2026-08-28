@@ -1,9 +1,11 @@
 #pragma once
 
 #include <cstdint>
+#include <cstddef>
 #include <vector>
 
 #include "arm_memory.h"
+
 
 class TestMemory : public ARMMemory
 {
@@ -16,6 +18,22 @@ public:
     {
     }
 
+
+    // ========================================================
+    // Mapping
+    // ========================================================
+
+    bool isMapped(
+        uint32_t address
+    ) const override
+    {
+        return address < data.size();
+    }
+
+
+    // ========================================================
+    // Read
+    // ========================================================
 
     uint8_t read8(
         uint32_t address
@@ -46,6 +64,10 @@ public:
             (static_cast<uint32_t>(data.at(address + 3)) << 24);
     }
 
+
+    // ========================================================
+    // Write
+    // ========================================================
 
     void write8(
         uint32_t address,

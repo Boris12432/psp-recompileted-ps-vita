@@ -142,7 +142,7 @@ static void testCFG()
 
 int main()
 {
-    
+
     printf("========================================\n");
     printf("        ARM CORE TEST SUITE\n");
     printf("========================================\n\n");
@@ -1339,7 +1339,7 @@ int main()
 
     TEST(
         "B forward +8",
-        cpu.r[15] == 0x1008
+        cpu.r[15] == 0x1010
     );
 
 
@@ -1364,7 +1364,7 @@ int main()
 
     TEST(
         "B backward -8",
-        cpu.r[15] == 0x1FF8
+        cpu.r[15] == 0x2000
     );
 
 
@@ -1391,7 +1391,7 @@ int main()
 
     TEST(
         "BEQ executes when Z=1",
-        cpu.r[15] == 0x3020
+        cpu.r[15] == 0x3028
     );
 
 
@@ -1434,7 +1434,7 @@ int main()
 
     TEST(
         "BNE executes when Z=0",
-        cpu.r[15] == 0x3020
+        cpu.r[15] == 0x3028
     );
 
 
@@ -1461,12 +1461,12 @@ int main()
 
     TEST(
         "BL branches forward",
-        cpu.r[15] == 0x4100
+        cpu.r[15] == 0x4108
     );
 
     TEST(
         "BL stores return address in LR",
-        cpu.r[14] == 0x3FFC
+        cpu.r[14] == 0x4004
     );
 
 
@@ -1483,12 +1483,12 @@ int main()
 
     TEST(
         "BL branches backward",
-        cpu.r[15] == 0x4F00
+        cpu.r[15] == 0x4F08
     );
 
     TEST(
         "BL updates LR",
-        cpu.r[14] == 0x4FFC
+        cpu.r[14] == 0x5004
     );
 
 

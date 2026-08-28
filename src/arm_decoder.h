@@ -26,18 +26,27 @@ private:
         uint32_t instruction
     );
 
-
     // Instruction classification
 
     static bool isBX(
         uint32_t instruction
     );
 
+    static bool isMultiply(
+        uint32_t instruction
+    );
+
+    static IRInstruction decodeMultiply(
+        uint32_t instruction
+    );
 
     static bool isBranch(
         uint32_t instruction
     );
 
+    static bool isBlockTransfer(
+        uint32_t instruction
+    );
 
     static bool isDataProcessing(
         uint32_t instruction
@@ -79,4 +88,9 @@ private:
     static IRInstruction decodeHalfwordTransfer(
         uint32_t instruction
     );
+
+    static IRInstruction decodeBlockTransfer(
+        uint32_t instruction
+    );
+
 };

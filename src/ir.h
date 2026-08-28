@@ -15,6 +15,11 @@ enum class IROp
     ADC,
     SBC,
     RSC,
+    
+    MUL,
+    MLA,
+    UMULL,
+    SMULL,
 
     TST,
     TEQ,
@@ -28,6 +33,8 @@ enum class IROp
 
     LDR,
     STR,
+    LDM,
+    STM,
 
     B,
     BL,
@@ -118,18 +125,18 @@ struct IRInstruction
 
     // Registers
     int rd = -1;
-
+    int rs = -1;
     int rn = -1;
+    int rm = -1;
 
 
     // ARM Operand2
     Operand2 operand2{};
 
 
-    // Branch register
-    int rm = -1;
-
     int32_t branchOffset = 0;
+
+    uint16_t registerList = 0;
 
 
     // CPSR
@@ -159,6 +166,8 @@ struct IRInstruction
     // [Rn,#offset]!
     bool writeBack = false;
 
+    // Register list for LDM / STM
+   
 
     // true  = load
     // false = store
@@ -178,5 +187,8 @@ struct IRInstruction
     // LDRSB -> true
     // LDRSH -> true
     bool signExtend = false;
+    
     uint32_t address = 0;
+
+    uint8_t width = 4;
 };

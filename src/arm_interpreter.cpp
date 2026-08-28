@@ -412,6 +412,101 @@ bool ARMInterpreter::execute(
             return false;
         }
 
+        case IROp::MUL:
+        {
+            uint32_t result =
+                cpu.r[ir.rm] *
+                cpu.r[ir.rs];
+
+            cpu.r[ir.rd] =
+                result;
+
+            if (ir.setFlags)
+            {
+                cpu.setNZ(result);
+            }
+
+            return false;
+        }
+
+        case IROp::MLA: {
+            
+            uint32_t result =
+                cpu.r[ir.rm] *
+                cpu.r[ir.rs];
+
+            result +=
+                cpu.r[ir.rn];
+
+            cpu.r[ir.rd] =
+                result;
+
+            if (ir.setFlags)
+            {
+                cpu.setNZ(result);
+            }
+
+            return false;
+        }
+
+        case IROp::UMULL:
+        {
+            uint64_t result =
+                static_cast<uint64_t>(cpu.r[ir.rm]) *
+                static_cast<uint64_t>(cpu.r[ir.rs]);
+
+            cpu.r[ir.rd] =
+                static_cast<uint32_t>(result & 0xFFFFFFFFu);
+
+            cpu.r[ir.rn] =
+                static_cast<uint32_t>(result >> 32);
+
+            if (ir.setFlags)
+            {
+                cpu.N =
+                    (cpu.r[ir.rn] & 0x80000000u) != 0;
+
+                cpu.Z =
+                    result == 0;
+            }
+
+            return false;
+        }
+
+        case IROp::SMULL:
+        {
+            int64_t result =
+                static_cast<int64_t>(
+                    static_cast<int32_t>(cpu.r[ir.rm])
+                ) *
+                static_cast<int64_t>(
+                    static_cast<int32_t>(cpu.r[ir.rs])
+                );
+
+            uint64_t bits =
+                static_cast<uint64_t>(result);
+
+            cpu.r[ir.rd] =
+                static_cast<uint32_t>(
+                    bits & 0xFFFFFFFFu
+                );
+
+            cpu.r[ir.rn] =
+                static_cast<uint32_t>(
+                    bits >> 32
+                );
+
+            if (ir.setFlags)
+            {
+                cpu.N =
+                    (cpu.r[ir.rn] & 0x80000000u) != 0;
+
+                cpu.Z =
+                    result == 0;
+            }
+
+            return false;
+        }
 
         // ====================================================
         // AND
@@ -634,6 +729,173 @@ bool ARMInterpreter::execute(
 
             cpu.C =
                 shifterCarry;
+
+            return false;
+        }
+
+        // ====================================================
+        // LDM
+        // ====================================================
+
+        case IROp::LDM: {
+
+            uint32_t base =
+                cpu.r[ir.rn];
+
+            uint32_t registerList =
+                ir.registerList;
+
+            uint32_t count = 0;
+
+            for (int reg = 0; reg < 16; ++reg)
+            {
+                if (registerList & (1u << reg))
+                    ++count;
+            }
+
+            if (count == 0)
+                return false;
+
+
+            uint32_t address;
+
+
+            // ------------------------------------------------
+            // Calculate first address
+            // ------------------------------------------------
+
+            if (ir.up)
+            {
+                if (ir.preIndex)
+                {
+                    // LDMIB
+                    address =
+                        base + 4;
+                }
+                else
+                {
+                    // LDMIA
+                    address =
+                        base;
+                }
+            }
+            else
+            {
+                if (ir.preIndex)
+                {
+                    // LDMDB
+                    address =
+                        base - count * 4;
+                }
+                else
+                {
+                    // LDMDA
+                    address =
+                        base - (count - 1) * 4;
+                }
+            }
+
+
+            // ------------------------------------------------
+            // Load registers
+            // ------------------------------------------------
+
+            for (int reg = 0; reg < 16; ++reg)
+            {
+                if (!(registerList & (1u << reg)))
+                    continue;
+
+                uint32_t value =
+                    memory.read32(address);
+
+                cpu.r[reg] =
+                    value;
+
+                address += 4;
+            }
+
+
+            // ------------------------------------------------
+            // Write-back
+            // ------------------------------------------------
+
+            if (ir.writeBack)
+            {
+                if (ir.up)
+                {
+                    cpu.r[ir.rn] =
+                        base + count * 4;
+                }
+                else
+                {
+                    cpu.r[ir.rn] =
+                        base - count * 4;
+                }
+            }
+
+            return false;
+        }
+
+        // ====================================================
+        // STM
+        // ====================================================
+
+        case IROp::STM: {
+
+            uint32_t base =
+                cpu.r[ir.rn];
+
+            uint32_t count =
+                0;
+
+            for (int reg = 0; reg < 16; ++reg)
+            {
+                if (ir.registerList & (1u << reg))
+                    ++count;
+            }
+
+            if (count == 0)
+                return false;
+
+            uint32_t address;
+
+            if (ir.up)
+            {
+                if (ir.preIndex)
+                    address = base + 4;
+                else
+                    address = base;
+            }
+            else
+            {
+                if (ir.preIndex)
+                    address = base - count * 4;
+                else
+                    address = base - (count - 1) * 4;
+            }
+
+            for (int reg = 0; reg < 16; ++reg)
+            {
+                if (!(ir.registerList & (1u << reg)))
+                    continue;
+
+                memory.write32(
+                    address,
+                    cpu.r[reg]
+                );
+
+                address += 4;
+            }
+
+            if (ir.writeBack)
+            {
+                if (ir.up)
+                    cpu.r[ir.rn] =
+                        base + count * 4;
+                else
+                    cpu.r[ir.rn] =
+                        base - count * 4;
+            }
 
             return false;
         }
@@ -917,9 +1179,14 @@ bool ARMInterpreter::execute(
         // Branch
         // ====================================================
 
-        case IROp::B: {
+        case IROp::B:
+        {
+            uint32_t instructionPC =
+                ir.address;
 
-            cpu.r[15] +=
+            cpu.r[15] =
+                instructionPC +
+                8 +
                 ir.branchOffset;
 
             return true;
@@ -930,20 +1197,24 @@ bool ARMInterpreter::execute(
         // BL
         // ====================================================
 
-        case IROp::BL: {
+        case IROp::BL:
+        {
+            uint32_t instructionPC =
+                ir.address;
 
-            uint32_t oldPC =
-                cpu.r[15];
-
+            // ARM LR semantics:
+            // return address = address of next instruction
             cpu.r[14] =
-                oldPC - 4;
+                instructionPC + 4;
 
+            // ARM branch uses PC = instruction address + 8
             cpu.r[15] =
-                oldPC + ir.branchOffset;
+                instructionPC +
+                8 +
+                ir.branchOffset;
 
             return true;
         }
-
 
         // ====================================================
         // BX

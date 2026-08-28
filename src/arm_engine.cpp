@@ -1,5 +1,9 @@
 #include "arm_engine.h"
+#include "thumb_decoder.h"
 
+// ============================================================
+// Fetch
+// ============================================================
 
 uint32_t ARMEngine::fetch32(
     uint32_t address
@@ -8,6 +12,18 @@ uint32_t ARMEngine::fetch32(
     return memory.read32(address);
 }
 
+
+uint16_t ARMEngine::fetch16(
+    uint32_t address
+) const
+{
+    return memory.read16(address);
+}
+
+
+// ============================================================
+// Step
+// ============================================================
 
 bool ARMEngine::step()
 {
@@ -20,87 +36,62 @@ bool ARMEngine::step()
 
 
     // --------------------------------------------------------
-    // Fetch
+    // ARM state
     // --------------------------------------------------------
 
-    uint32_t instruction =
-        fetch32(realPC);
+        // ----------------------------------------------------
+        // Fetch ARM instruction
+        // ----------------------------------------------------
+
+        uint32_t instruction =
+            fetch32(realPC);
 
 
-    // --------------------------------------------------------
-    // Decode
-    // --------------------------------------------------------
+        // ----------------------------------------------------
+        // Decode ARM instruction
+        // ----------------------------------------------------
 
-    IRInstruction ir =
-        ARMDecoder::decode(instruction);
-
-
-    // --------------------------------------------------------
-    // Save real instruction address
-    // --------------------------------------------------------
-
-    ir.address =
-        realPC;
+        IRInstruction ir =
+            ARMDecoder::decode(instruction);
 
 
-    // --------------------------------------------------------
-    // ARM architectural PC
-    // --------------------------------------------------------
-    //
-    // In ARM state an instruction sees PC as:
-    //
-    //     current_address + 8
-    //
-    // This is important for B/BL.
-    //
+        // ----------------------------------------------------
+        // Save real instruction address
+        // ----------------------------------------------------
 
-    if (!cpu.T)
-    {
-        cpu.r[15] =
-            realPC + 8;
-    }
+        ir.address =
+            realPC;
+
+        bool pcChanged =
+            interpreter.execute(ir);
 
 
-    // --------------------------------------------------------
-    // Execute
-    // --------------------------------------------------------
+        // ----------------------------------------------------
+        // Sequential PC update
+        // ----------------------------------------------------
 
-    bool pcChanged =
-        interpreter.execute(ir);
-
-
-    // --------------------------------------------------------
-    // Sequential PC update
-    // --------------------------------------------------------
-    //
-    // execute() returns:
-    //
-    // false = instruction did NOT modify PC
-    // true  = instruction modified PC
-    //
-
-    if (!pcChanged)
-    {
-        if (cpu.T)
+        if (!pcChanged)
         {
-            // Thumb instruction = 16 bit
-
-            cpu.r[15] =
-                realPC + 2;
-        }
-        else
-        {
-            // ARM instruction = 32 bit
-
+            if (cpu.T)
+            {
+                cpu.r[15] =
+                    realPC + 2;
+            }
+        
+            else
+            {
             cpu.r[15] =
                 realPC + 4;
+            }
+           
         }
-    }
+        return true;
 
-
-    return true;
 }
 
+// ============================================================
+// Run
+// ============================================================
 
 void ARMEngine::run(
     uint32_t maxInstructions

@@ -108,6 +108,19 @@ bool ARMDecoder::isLoadStore(
         == 0b01;
 }
 
+bool ARMDecoder::isBlockTransfer(
+    uint32_t instruction
+)
+{
+    /*
+     * ARM LDM / STM:
+     *
+     * bits 27:25 = 100
+     */
+
+    return
+        ((instruction >> 25) & 0x7) == 0b100;
+}
 
 bool ARMDecoder::isHalfwordTransfer(
     uint32_t instruction
@@ -302,10 +315,125 @@ Operand2 ARMDecoder::decodeOperand2(
     return op;
 }
 
+// ============================================================
+// Multiply
+// ============================================================
+
+IRInstruction ARMDecoder::decodeMultiply(
+    uint32_t instruction
+)
+{
+    IRInstruction ir;
+
+    ir.condition =
+        condition(instruction);
+
+    bool A =
+        (instruction >> 21) & 1;
+
+    bool S =
+        (instruction >> 20) & 1;
+
+    bool U =
+        (instruction >> 22) & 1;
+
+    bool longMultiply =
+        (instruction >> 23) & 1;
+
+    ir.setFlags =
+        S;
+
+    /*
+     * Register layout:
+     *
+     * Rd = bits 19:16
+     * Rn = bits 15:12
+     * Rs = bits 11:8
+     * Rm = bits 3:0
+     */
+
+    ir.rd =
+        (instruction >> 16) & 0xF;
+
+    ir.rn =
+        (instruction >> 12) & 0xF;
+
+    ir.rs =
+        (instruction >> 8) & 0xF;
+
+    ir.rm =
+        instruction & 0xF;
+
+    // --------------------------------------------------------
+    // MUL / MLA
+    // --------------------------------------------------------
+
+    if (!longMultiply)
+    {
+        if (A)
+        {
+            ir.op =
+                IROp::MLA;
+        }
+        else
+        {
+            ir.op =
+                IROp::MUL;
+        }
+
+        return ir;
+    }
+
+    // --------------------------------------------------------
+    // UMULL / SMULL
+    // --------------------------------------------------------
+
+    if (U)
+    {
+        ir.op =
+            IROp::SMULL;
+    }
+    else
+    {
+        ir.op =
+            IROp::UMULL;
+    }
+
+    return ir;
+}
 
 // ============================================================
 // BX
 // ============================================================
+
+bool ARMDecoder::isMultiply(
+    uint32_t instruction
+)
+{
+    /*
+     * ARM multiply family:
+     *
+     * 000000xx xxxx xxxx xxxx 1001 xxxx
+     *
+     * Bits 7:4 = 1001
+     * Bits 27:22 = 000000
+     *
+     * This covers:
+     *
+     * MUL
+     * MLA
+     * UMULL
+     * SMULL
+     */
+
+    if (((instruction >> 22) & 0x3F) != 0)
+        return false;
+
+    if (((instruction >> 4) & 0xF) != 0x9)
+        return false;
+
+    return true;
+}
 
 IRInstruction ARMDecoder::decodeBX(
     uint32_t instruction
@@ -329,6 +457,67 @@ IRInstruction ARMDecoder::decodeBX(
     return ir;
 }
 
+// ============================================================
+// LDM / STM
+// ============================================================
+
+IRInstruction ARMDecoder::decodeBlockTransfer(
+    uint32_t instruction
+)
+{
+    IRInstruction ir;
+
+    ir.condition =
+        condition(instruction);
+
+    bool P =
+        (instruction >> 24) & 1;
+
+    bool U =
+        (instruction >> 23) & 1;
+
+    bool S =
+        (instruction >> 22) & 1;
+
+    bool W =
+        (instruction >> 21) & 1;
+
+    bool L =
+        (instruction >> 20) & 1;
+
+
+    ir.rn =
+        (instruction >> 16) & 0xF;
+
+    ir.preIndex =
+        P;
+
+    ir.up =
+        U;
+
+    ir.writeBack =
+        W;
+
+    ir.load =
+        L;
+
+    ir.setFlags =
+        S;
+
+    ir.registerList =
+        static_cast<uint16_t>(
+            instruction & 0xFFFF
+        );
+
+
+    ir.op =
+        L
+            ? IROp::LDM
+            : IROp::STM;
+
+
+    return ir;
+}
 
 // ============================================================
 // Branch
@@ -1069,6 +1258,12 @@ IRInstruction ARMDecoder::decode(
         );
     }
 
+    if (isMultiply(instruction))
+    {
+        return decodeMultiply(
+            instruction
+        );
+    }
 
     // --------------------------------------------------------
     // B / BL
@@ -1081,6 +1276,16 @@ IRInstruction ARMDecoder::decode(
         );
     }
 
+    // --------------------------------------------------------
+    // LDM / STM
+    // --------------------------------------------------------
+
+    if (isBlockTransfer(instruction))
+    {
+        return decodeBlockTransfer(
+            instruction
+        );
+    }
 
     // --------------------------------------------------------
     // Halfword / signed transfer

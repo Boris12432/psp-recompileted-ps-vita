@@ -3,7 +3,6 @@
 #include <cstdint>
 
 #include "arm_memory.h"
-#include "arm_decoder.h"
 #include "basic_block.h"
 
 class ARMBlockBuilder
@@ -18,7 +17,7 @@ public:
     }
 
     BasicBlock build(
-        uint32_t address
+        uint32_t startAddress
     );
 
 private:
