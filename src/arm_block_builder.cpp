@@ -14,23 +14,10 @@ BasicBlock ARMBlockBuilder::build(
 
     uint32_t pc = address;
 
-    constexpr uint32_t MAX_INSTRUCTIONS = 64;
-
-    for (uint32_t count = 0; count < MAX_INSTRUCTIONS; ++count)
+    while (true)
     {
         uint32_t instruction =
             memory.read32(pc);
-
-        if (instruction == 0)
-        {
-            block.exit =
-                BlockExit::Fallthrough;
-
-            block.endAddress =
-                pc;
-
-            return block;
-        }
 
         IRInstruction ir =
             ARMDecoder::decode(instruction);
@@ -44,6 +31,14 @@ BasicBlock ARMBlockBuilder::build(
 
         block.endAddress =
             nextPC;
+
+        if (ir.op == IROp::INVALID)
+        {
+            block.exit = BlockExit::Unknown;
+            block.fallthroughAddress = 0;
+
+            return block;
+        }
 
         switch (ir.op)
         {
@@ -90,16 +85,11 @@ BasicBlock ARMBlockBuilder::build(
 
                 return block;
             }
-
+            
             default:
                 break;
         }
 
         pc = nextPC;
     }
-
-    // Мы дошли до лимита.
-    block.exit = BlockExit::Unknown;
-
-    return block;
 }

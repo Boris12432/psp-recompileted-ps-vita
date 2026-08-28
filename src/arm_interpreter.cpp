@@ -140,6 +140,7 @@ bool ARMInterpreter::execute(
         // ====================================================
         // MOV
         // ====================================================
+    
 
         case IROp::MOV: {
 
@@ -967,11 +968,13 @@ bool ARMInterpreter::execute(
         // NOP
         // ====================================================
 
-        case IROp::NOP:
+        case IROp::INVALID: 
+            return false;
+        
 
+        case IROp::NOP: 
             return true;
-            }
-
+    }          
 
     return false;
 }

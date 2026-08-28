@@ -5,6 +5,8 @@
 
 enum class IROp
 {
+    INVALID,
+
     AND,
     EOR,
     SUB,

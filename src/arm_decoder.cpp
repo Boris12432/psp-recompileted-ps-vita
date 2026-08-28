@@ -1049,12 +1049,14 @@ IRInstruction ARMDecoder::decode(
     uint32_t instruction
 )
 {
-    /*
-     * ARM instruction decoding order.
-     *
-     * More specific encodings first.
-     */
+    if (instruction == 0)
+    {
+        IRInstruction ir;
 
+        ir.op = IROp::INVALID;
+
+        return ir;
+    }
 
     // --------------------------------------------------------
     // BX
