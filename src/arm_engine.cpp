@@ -11,15 +11,9 @@ uint32_t ARMEngine::fetch32(
 
 bool ARMEngine::step()
 {
-    /*
-     * PC до выполнения инструкции.
-     *
-     * В ARM state CPU при исполнении инструкции
-     * видит PC как address + 8.
-     *
-     * В Thumb state пока используем текущий PC
-     * и размер инструкции 2 байта.
-     */
+    // --------------------------------------------------------
+    // Real address of current instruction
+    // --------------------------------------------------------
 
     uint32_t realPC =
         cpu.r[15];
@@ -42,18 +36,26 @@ bool ARMEngine::step()
 
 
     // --------------------------------------------------------
-    // Architectural PC
+    // Save real instruction address
     // --------------------------------------------------------
+
+    ir.address =
+        realPC;
+
+
+    // --------------------------------------------------------
+    // ARM architectural PC
+    // --------------------------------------------------------
+    //
+    // In ARM state an instruction sees PC as:
+    //
+    //     current_address + 8
+    //
+    // This is important for B/BL.
+    //
 
     if (!cpu.T)
     {
-        /*
-         * ARM:
-         *
-         * instruction address = realPC
-         * visible PC          = realPC + 8
-         */
-
         cpu.r[15] =
             realPC + 8;
     }
@@ -68,27 +70,27 @@ bool ARMEngine::step()
 
 
     // --------------------------------------------------------
-    // Sequential execution
+    // Sequential PC update
     // --------------------------------------------------------
+    //
+    // execute() returns:
+    //
+    // false = instruction did NOT modify PC
+    // true  = instruction modified PC
+    //
 
     if (!pcChanged)
     {
         if (cpu.T)
         {
-            /*
-             * Thumb instruction:
-             * 16-bit = 2 bytes
-             */
+            // Thumb instruction = 16 bit
 
             cpu.r[15] =
                 realPC + 2;
         }
         else
         {
-            /*
-             * ARM instruction:
-             * 32-bit = 4 bytes
-             */
+            // ARM instruction = 32 bit
 
             cpu.r[15] =
                 realPC + 4;

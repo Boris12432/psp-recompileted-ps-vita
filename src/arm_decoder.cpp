@@ -501,7 +501,7 @@ IRInstruction ARMDecoder::decodeDataProcessing(
              */
 
             ir.op =
-                IROp::NOP;
+                IROp::RSB;
 
             break;
 
@@ -537,7 +537,7 @@ IRInstruction ARMDecoder::decodeDataProcessing(
              */
 
             ir.op =
-                IROp::NOP;
+                IROp::RSC;
 
             break;
 

@@ -5,32 +5,33 @@
 
 enum class IROp
 {
-    NOP,
-
-    MOV,
-    MVN,
-
+    AND,
+    EOR,
+    SUB,
+    RSB,
     ADD,
     ADC,
-    SUB,
     SBC,
+    RSC,
 
-    AND,
-    ORR,
-    EOR,
-    BIC,
-
-    CMP,
-    CMN,
     TST,
     TEQ,
+    CMP,
+    CMN,
+
+    ORR,
+    MOV,
+    BIC,
+    MVN,
 
     LDR,
     STR,
 
     B,
     BL,
-    BX
+    BX,
+
+    NOP
 };
 
 
@@ -175,4 +176,5 @@ struct IRInstruction
     // LDRSB -> true
     // LDRSH -> true
     bool signExtend = false;
+    uint32_t address = 0;
 };

@@ -1,0 +1,4 @@
+C:/Users/Andre/OneDrive/Рабочий стол/psp lexer ps vita/psp recompileted ps vita/build/CMakeFiles/arm2mips.dir
+C:/Users/Andre/OneDrive/Рабочий стол/psp lexer ps vita/psp recompileted ps vita/build/CMakeFiles/arm_tests.dir
+C:/Users/Andre/OneDrive/Рабочий стол/psp lexer ps vita/psp recompileted ps vita/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/Andre/OneDrive/Рабочий стол/psp lexer ps vita/psp recompileted ps vita/build/CMakeFiles/ZERO_CHECK.dir
