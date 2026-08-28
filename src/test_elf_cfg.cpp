@@ -1,35 +1,22 @@
+#include <cassert>
+#include <cstdint>
 #include <iostream>
-#include <iomanip>
 
 #include "elf_loader.h"
 #include "arm_memory.h"
 #include "arm_control_flow_graph.h"
 
-int main(int argc, char** argv)
+int main()
 {
-    if (argc < 2)
-    {
-        std::cerr
-            << "Usage: test_elf_cfg.exe <elf_file>\n";
+    const char* filename = "nano";
 
-        return 1;
-    }
-
-    const char* filename = argv[1];
-
-    // ========================================================
+    // --------------------------------------------------------
     // ELF
-    // ========================================================
+    // --------------------------------------------------------
 
     ELFLoader loader;
 
-    if (!loader.load(filename))
-    {
-        std::cerr
-            << "[FAIL] ELF loading\n";
-
-        return 1;
-    }
+    assert(loader.load(filename));
 
     std::cout
         << "[OK] ELF loaded\n";
@@ -42,24 +29,21 @@ int main(int argc, char** argv)
         << "\n";
 
 
-    // ========================================================
+    // --------------------------------------------------------
     // Memory
-    // ========================================================
+    // --------------------------------------------------------
 
-    SimpleMemory memory(
-        16 * 1024 * 1024
-    );
+    SimpleMemory memory;
 
-
-    // ========================================================
-    // Load ELF segments
-    // ========================================================
-
-    for (const auto& segment :
-         loader.segments())
+    for (const auto& segment : loader.segments())
     {
-        if (segment.data.empty())
-            continue;
+        memory.map(
+            segment.vaddr,
+            segment.size,
+            (segment.flags & 4) != 0,
+            (segment.flags & 2) != 0,
+            (segment.flags & 1) != 0
+        );
 
         memory.load(
             segment.vaddr,
@@ -74,87 +58,79 @@ int main(int argc, char** argv)
             << std::hex
             << segment.vaddr
             << " size=0x"
-            << segment.data.size()
+            << segment.size
+            << " flags=0x"
+            << segment.flags
             << std::dec
             << "\n";
     }
 
 
-    // ========================================================
-    // Check entry instruction
-    // ========================================================
-
-    uint32_t entry =
-        loader.entryPoint();
-
-    uint32_t instruction =
-        memory.read32(entry);
-
     std::cout
-        << "Entry instruction: 0x"
-        << std::hex
-        << std::setw(8)
-        << std::setfill('0')
-        << instruction
-        << std::dec
-        << "\n";
+        << "[OK] Segments loaded\n";
 
 
-    // ========================================================
+    // --------------------------------------------------------
     // CFG
-    // ========================================================
+    // --------------------------------------------------------
 
-    ARMControlFlowGraph cfg(
-        memory
+    ARMControlFlowGraph cfg(memory);
+
+    cfg.build(
+        loader.entryPoint()
     );
-
-
-    cfg.build(entry);
 
 
     std::cout
         << "[OK] CFG built\n";
 
 
-    // ========================================================
-    // Entry node
-    // ========================================================
+    // --------------------------------------------------------
+    // Entry block
+    // --------------------------------------------------------
 
-    const BasicBlock* node =
-        cfg.getNode(entry);
+    const BasicBlock* entry =
+        cfg.getNode(
+            loader.entryPoint()
+        );
 
 
-    if (!node)
+    assert(entry != nullptr);
+
+
+    std::cout
+        << "Entry block:\n";
+
+    std::cout
+        << "  start = 0x"
+        << std::hex
+        << entry->startAddress
+        << "\n";
+
+    std::cout
+        << "  end   = 0x"
+        << entry->endAddress
+        << "\n";
+
+    std::cout
+        << "  instructions = "
+        << std::dec
+        << entry->instructions.size()
+        << "\n";
+
+
+    for (const auto& ir : entry->instructions)
     {
-        std::cerr
-            << "[FAIL] Entry block not found\n";
-
-        return 1;
+        std::cout
+            << "    IR @ 0x"
+            << std::hex
+            << ir.address
+            << "\n";
     }
 
 
     std::cout
-        << "[OK] Entry block found\n";
-
-
-    std::cout
-        << "Block start: 0x"
-        << std::hex
-        << node->startAddress
-        << "\n";
-
-
-    std::cout
-        << "Block end:   0x"
-        << node->endAddress
-        << std::dec
-        << "\n";
-
-
-    std::cout
-        << "Instructions: "
-        << node->instructions.size()
-        << "\n";
+        << "[OK] Entry block exists\n";
 
 
     return 0;

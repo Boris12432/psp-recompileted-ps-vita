@@ -23,6 +23,28 @@ BasicBlock ARMBlockBuilder::build(
             << std::dec
             << "\n";
 
+        if (!memory.isMapped(pc) ||
+            !memory.isMapped(pc + 1) ||
+            !memory.isMapped(pc + 2) ||
+            !memory.isMapped(pc + 3))
+        {
+            std::cout
+                << "[BLOCK] unmapped memory @ 0x"
+                << std::hex
+                << pc
+                << std::dec
+                << "\n";
+
+            block.endAddress = pc;
+
+            block.exit =
+                BlockExit::Unknown;
+
+            block.fallthroughAddress = 0;
+
+            return block;
+        }
+
         uint32_t instruction =
             memory.read32(pc);
 

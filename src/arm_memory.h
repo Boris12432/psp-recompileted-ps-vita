@@ -16,6 +16,9 @@ public:
     virtual void write8(uint32_t address, uint8_t value) = 0;
     virtual void write16(uint32_t address, uint16_t value) = 0;
     virtual void write32(uint32_t address, uint32_t value) = 0;
+
+    virtual bool isMapped(uint32_t address) const = 0;
+
 };
 
 struct MemoryRegion
@@ -50,6 +53,8 @@ public:
         const uint8_t* data,
         uint32_t size
     );
+
+    bool isMapped(uint32_t address) const override;
 
     uint8_t read8(uint32_t address) override;
     uint16_t read16(uint32_t address) override;

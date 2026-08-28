@@ -121,6 +121,10 @@ void SimpleMemory::load(
     }
 }
 
+bool SimpleMemory::isMapped(uint32_t address) const
+{
+    return findRegion(address) != nullptr;
+}
 
 uint8_t SimpleMemory::read8(
     uint32_t address
