@@ -1,5 +1,5 @@
 #include "arm_block_builder.h"
-
+#include <iostream>
 #include "arm_decoder.h"
 
 
@@ -16,6 +16,13 @@ BasicBlock ARMBlockBuilder::build(
 
     while (true)
     {
+        std::cout
+            << "[BLOCK] read instruction @ 0x"
+            << std::hex
+            << pc
+            << std::dec
+            << "\n";
+
         uint32_t instruction =
             memory.read32(pc);
 
@@ -177,6 +184,10 @@ BasicBlock ARMBlockBuilder::build(
         block.fallthroughAddress =
             nextPC;
 
-        pc = nextPC;
+        block.exit =
+            BlockExit::Fallthrough;
+
+        pc =
+            nextPC;
     }
 }
