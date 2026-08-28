@@ -1,18 +1,18 @@
 #include "arm_block_builder.h"
 
-#include <cstdio>
-#include <iostream>
+#include "arm_decoder.h"
+
 
 BasicBlock ARMBlockBuilder::build(
-    uint32_t address
+    uint32_t startAddress
 )
 {
-
     BasicBlock block;
 
-    block.startAddress = address;
+    block.startAddress = startAddress;
+    block.endAddress = startAddress;
 
-    uint32_t pc = address;
+    uint32_t pc = startAddress;
 
     while (true)
     {
@@ -29,66 +29,153 @@ BasicBlock ARMBlockBuilder::build(
         uint32_t nextPC =
             pc + 4;
 
-        block.endAddress =
-            nextPC;
+
+        // ====================================================
+        // INVALID
+        // ====================================================
 
         if (ir.op == IROp::INVALID)
         {
-            block.exit = BlockExit::Unknown;
+            block.endAddress = pc;
+
+            block.exit =
+                BlockExit::Unknown;
+
             block.fallthroughAddress = 0;
 
             return block;
         }
 
-        switch (ir.op)
+
+        // ====================================================
+        // B
+        // ====================================================
+
+        if (ir.op == IROp::B)
         {
-            case IROp::B:
+            /*
+             * ARM PC during execution:
+             *
+             * PC = instruction address + 8
+             *
+             * Branch:
+             *
+             * target = PC + signed_offset
+             */
+
+            block.branchTarget =
+                pc + 8 +
+                static_cast<int32_t>(
+                    ir.branchOffset
+                );
+
+            block.fallthroughAddress =
+                nextPC;
+
+            block.endAddress =
+                nextPC;
+
+
+            /*
+             * B AL
+             *
+             * unconditional
+             */
+
+            if (ir.condition == Condition::AL)
             {
-                block.branchTarget =
-                    pc + 8 + ir.branchOffset;
+                block.exit =
+                    BlockExit::Branch;
+            }
+            else
+            {
+                /*
+                 * B<cond>
+                 *
+                 * Two possible paths:
+                 *
+                 * target
+                 * fallthrough
+                 */
 
-                block.fallthroughAddress =
-                    nextPC;
-
-                if (ir.condition == Condition::AL)
-                    block.exit = BlockExit::Branch;
-                else
-                    block.exit = BlockExit::ConditionalBranch;
-
-                return block;
+                block.exit =
+                    BlockExit::ConditionalBranch;
             }
 
-            case IROp::BL:
-            {
-                block.branchTarget =
-                    pc + 8 + ir.branchOffset;
-
-                block.fallthroughAddress =
-                    nextPC;
-
-                block.exit = BlockExit::Call;
-
-
-                return block;
-            }
-
-            case IROp::BX:
-            {
-                block.fallthroughAddress =
-                    nextPC;
-
-                if (ir.rm == 14)
-                    block.exit = BlockExit::Return;
-                else
-                    block.exit = BlockExit::IndirectBranch;
-
-
-                return block;
-            }
-            
-            default:
-                break;
+            return block;
         }
+
+
+        // ====================================================
+        // BL
+        // ====================================================
+
+        if (ir.op == IROp::BL)
+        {
+            block.branchTarget =
+                pc + 8 +
+                static_cast<int32_t>(
+                    ir.branchOffset
+                );
+
+            block.fallthroughAddress =
+                nextPC;
+
+            block.endAddress =
+                nextPC;
+
+            block.exit =
+                BlockExit::Call;
+
+            return block;
+        }
+
+
+        // ====================================================
+        // BX
+        // ====================================================
+
+        if (ir.op == IROp::BX)
+        {
+            block.fallthroughAddress =
+                nextPC;
+
+            block.endAddress =
+                nextPC;
+
+
+            /*
+             * BX LR
+             *
+             * R14 = LR
+             *
+             * Typical ARM function return.
+             */
+
+            if (ir.rm == 14)
+            {
+                block.exit =
+                    BlockExit::Return;
+            }
+            else
+            {
+                block.exit =
+                    BlockExit::IndirectBranch;
+            }
+
+            return block;
+        }
+
+
+        // ====================================================
+        // Normal instruction
+        // ====================================================
+
+        block.endAddress =
+            nextPC;
+
+        block.fallthroughAddress =
+            nextPC;
 
         pc = nextPC;
     }

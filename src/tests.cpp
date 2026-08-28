@@ -1,3 +1,4 @@
+#include <cassert>
 #include <cstdio>
 #include <cstdint>
 #include <cstdlib>
@@ -9,6 +10,8 @@
 #include "arm_interpreter.h"
 #include "arm_block_builder.h"
 #include "arm_cfg.h"
+#include "test_memory.h"
+#include "elf_loader.h"
 
 static int tests = 0;
 static int passed = 0;
@@ -25,7 +28,6 @@ static int passed = 0;
         }                                                          \
     } while (0)
 
-
 static void execute(
     ARMInterpreter& interpreter,
     uint32_t instruction)
@@ -34,6 +36,35 @@ static void execute(
         ARMDecoder::decode(instruction);
 
     interpreter.execute(ir);
+}
+
+void test_branch()
+{
+    TestMemory memory;
+    ARMCPU cpu;
+
+    cpu.r[15] = 0x1000;
+
+    memory.write32(
+        0x1000,
+        0xEA000002
+    );
+
+    ARMEngine engine(cpu, memory);
+
+    bool result = engine.step();
+
+    std::cout
+        << "PC after B = "
+        << std::hex
+        << cpu.r[15]
+        << std::dec
+        << "\n";
+
+    assert(result);
+    assert(cpu.r[15] == 0x1010);
+
+    std::cout << "[OK] B\n";
 }
 
 static void testCFG()
@@ -111,6 +142,7 @@ static void testCFG()
 
 int main()
 {
+    
     printf("========================================\n");
     printf("        ARM CORE TEST SUITE\n");
     printf("========================================\n\n");
@@ -1542,13 +1574,6 @@ int main()
     // CFG TESTS
     // ============================================================
 
-    
-
-
-    // ============================================================
-    // FINAL
-    // ============================================================
-
     // ============================================================
     // FINAL
     // ============================================================
@@ -1565,6 +1590,8 @@ int main()
     printf("========================================\n");
     
     testCFG();
+
+    test_branch();
 
     getchar();
 

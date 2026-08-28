@@ -973,7 +973,7 @@ bool ARMInterpreter::execute(
         
 
         case IROp::NOP: 
-            return true;
+            return false;
     }          
 
     return false;
