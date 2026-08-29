@@ -29,9 +29,9 @@ public:
 
 private:
 
-    void advancePC();
-    
-    uint16_t fetch16(uint32_t address) const;
+    uint16_t fetch16(
+        uint32_t address
+    ) const;
 
     uint32_t fetch32(
         uint32_t address
@@ -40,7 +40,6 @@ private:
 private:
 
     ARMCPU& cpu;
-
     ARMMemory& memory;
 
     ARMInterpreter interpreter;

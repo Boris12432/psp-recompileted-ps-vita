@@ -35,17 +35,8 @@ bool HLEDispatcher::call(
             id
         );
 
-        cpu.r[0] =
-            0xFFFFFFFFu;
-
         return false;
     }
-
-
-    std::printf(
-        "[HLE] Call: 0x%08X\n",
-        id
-    );
 
     it->second(cpu);
 

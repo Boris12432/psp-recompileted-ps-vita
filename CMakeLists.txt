@@ -13,6 +13,7 @@ set(CORE_SOURCES
     src/hle_dispatcher.cpp
     src/hle_ctrl.cpp
     src/hle_registry.cpp
+    src/thumb_decoder.cpp
     src/arm_memory.cpp
     src/arm_engine.cpp
     src/arm_cpu.cpp

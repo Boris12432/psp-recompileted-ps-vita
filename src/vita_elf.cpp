@@ -3,6 +3,8 @@
 #include <fstream>
 #include <cstring>
 #include <cstdio>
+#include <cstdint>
+#include <limits>
 
 
 // ============================================================
@@ -100,7 +102,13 @@ bool VitaELF::load(
 
 
     if (size <= 0)
+    {
+        std::printf(
+            "[ELF] Empty file\n"
+        );
+
         return false;
+    }
 
 
     data.resize(
@@ -112,6 +120,10 @@ bool VitaELF::load(
             reinterpret_cast<char*>(data.data()),
             size))
     {
+        std::printf(
+            "[ELF] Failed to read file\n"
+        );
+
         return false;
     }
 
@@ -126,8 +138,14 @@ bool VitaELF::load(
 
 bool VitaELF::parse()
 {
-    if (data.size() <
-        sizeof(ELF32Header))
+    // --------------------------------------------------------
+    // Minimum ELF header
+    // --------------------------------------------------------
+
+    if (
+        data.size() <
+        sizeof(ELF32Header)
+    )
     {
         std::printf(
             "[ELF] File too small\n"
@@ -166,7 +184,9 @@ bool VitaELF::parse()
     // ELF class
     // --------------------------------------------------------
 
-    if (header->ident[4] != 1)
+    if (
+        header->ident[4] != 1
+    )
     {
         std::printf(
             "[ELF] Not ELF32\n"
@@ -177,10 +197,42 @@ bool VitaELF::parse()
 
 
     // --------------------------------------------------------
+    // ELF header size
+    // --------------------------------------------------------
+
+    if (
+        header->headerSize <
+        sizeof(ELF32Header)
+    )
+    {
+        std::printf(
+            "[ELF] Invalid ELF header size\n"
+        );
+
+        return false;
+    }
+
+
+    if (
+        header->headerSize >
+        data.size()
+    )
+    {
+        std::printf(
+            "[ELF] ELF header exceeds file\n"
+        );
+
+        return false;
+    }
+
+
+    // --------------------------------------------------------
     // ARM
     // --------------------------------------------------------
 
-    if (header->machine != 40)
+    if (
+        header->machine != 40
+    )
     {
         std::printf(
             "[ELF] Not ARM ELF\n"
@@ -189,6 +241,10 @@ bool VitaELF::parse()
         return false;
     }
 
+
+    // --------------------------------------------------------
+    // Entry point
+    // --------------------------------------------------------
 
     entry =
         header->entry;
@@ -200,19 +256,74 @@ bool VitaELF::parse()
     );
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // Section table validation
+    // ========================================================
+
+    // A section table with entries must have a valid entry size.
+    if (
+        header->sectionHeaderCount != 0 &&
+        header->sectionHeaderEntrySize !=
+        sizeof(ELF32SectionHeader)
+    )
+    {
+        std::printf(
+            "[ELF] Unsupported section header size: %u "
+            "(expected %zu)\n",
+            header->sectionHeaderEntrySize,
+            sizeof(ELF32SectionHeader)
+        );
+
+        return false;
+    }
+
+
+    const uint64_t sectionTableOffset =
+        static_cast<uint64_t>(
+            header->sectionHeaderOffset
+        );
+
+    const uint64_t sectionTableCount =
+        static_cast<uint64_t>(
+            header->sectionHeaderCount
+        );
+
+    const uint64_t sectionEntrySize =
+        static_cast<uint64_t>(
+            header->sectionHeaderEntrySize
+        );
+
+
+    const uint64_t sectionTableSize =
+        sectionTableCount *
+        sectionEntrySize;
+
+
+    const uint64_t sectionTableEnd =
+        sectionTableOffset +
+        sectionTableSize;
+
+
+    // --------------------------------------------------------
+    // Overflow-safe bounds check
     // --------------------------------------------------------
 
-    uint32_t sectionTableEnd =
-        header->sectionHeaderOffset +
-        header->sectionHeaderCount *
-        header->sectionHeaderEntrySize;
+    if (
+        sectionTableOffset >
+        static_cast<uint64_t>(data.size())
+    )
+    {
+        std::printf(
+            "[ELF] Section table offset outside file\n"
+        );
+
+        return false;
+    }
 
 
     if (
-        header->sectionHeaderOffset >= data.size() ||
-        sectionTableEnd > data.size()
+        sectionTableEnd >
+        static_cast<uint64_t>(data.size())
     )
     {
         std::printf(
@@ -223,6 +334,24 @@ bool VitaELF::parse()
     }
 
 
+    // --------------------------------------------------------
+    // No sections
+    // --------------------------------------------------------
+
+    if (
+        header->sectionHeaderCount == 0
+    )
+    {
+        sectionList.clear();
+
+        return true;
+    }
+
+
+    // --------------------------------------------------------
+    // Section table
+    // --------------------------------------------------------
+
     const auto* sections =
         reinterpret_cast<
             const ELF32SectionHeader*
@@ -232,15 +361,19 @@ bool VitaELF::parse()
         );
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // Section string table
-    // --------------------------------------------------------
+    // ========================================================
 
     if (
         header->stringTableIndex >=
         header->sectionHeaderCount
     )
     {
+        std::printf(
+            "[ELF] Invalid string table index\n"
+        );
+
         return false;
     }
 
@@ -251,12 +384,47 @@ bool VitaELF::parse()
         ];
 
 
+    const uint64_t stringTableOffset =
+        static_cast<uint64_t>(
+            stringSection.offset
+        );
+
+    const uint64_t stringTableSize =
+        static_cast<uint64_t>(
+            stringSection.size
+        );
+
+    const uint64_t stringTableEnd =
+        stringTableOffset +
+        stringTableSize;
+
+
+    // --------------------------------------------------------
+    // String table bounds
+    // --------------------------------------------------------
+
     if (
-        stringSection.offset +
-        stringSection.size >
-        data.size()
+        stringTableOffset >
+        static_cast<uint64_t>(data.size())
     )
     {
+        std::printf(
+            "[ELF] Invalid string table offset\n"
+        );
+
+        return false;
+    }
+
+
+    if (
+        stringTableEnd >
+        static_cast<uint64_t>(data.size())
+    )
+    {
+        std::printf(
+            "[ELF] Invalid string table size\n"
+        );
+
         return false;
     }
 
@@ -266,15 +434,19 @@ bool VitaELF::parse()
             const char*
         >(
             data.data() +
-            stringSection.offset
+            stringTableOffset
         );
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // Read sections
-    // --------------------------------------------------------
+    // ========================================================
 
     sectionList.clear();
+
+    sectionList.reserve(
+        header->sectionHeaderCount
+    );
 
 
     for (
@@ -290,13 +462,48 @@ bool VitaELF::parse()
         ELFSection section;
 
 
+        // ----------------------------------------------------
+        // Section name
+        // ----------------------------------------------------
+
         if (
-            src.name <
-            stringSection.size
+            static_cast<uint64_t>(src.name) <
+            stringTableSize
         )
         {
-            section.name =
+            const char* name =
                 strings + src.name;
+
+            // ------------------------------------------------
+            // Ensure the string is terminated inside table.
+            // ------------------------------------------------
+
+            const uint64_t remaining =
+                stringTableSize -
+                static_cast<uint64_t>(src.name);
+
+            const void* terminator =
+                std::memchr(
+                    name,
+                    '\0',
+                    static_cast<size_t>(remaining)
+                );
+
+            if (terminator != nullptr)
+            {
+                section.name =
+                    name;
+            }
+            else
+            {
+                std::printf(
+                    "[ELF] Unterminated section name "
+                    "at index %u\n",
+                    i
+                );
+
+                return false;
+            }
         }
 
 
@@ -326,6 +533,53 @@ bool VitaELF::parse()
 
         section.entrySize =
             src.entrySize;
+
+
+        // ----------------------------------------------------
+        // Validate section data bounds
+        // ----------------------------------------------------
+
+        const uint64_t sectionOffset =
+            static_cast<uint64_t>(
+                src.offset
+            );
+
+        const uint64_t sectionSize =
+            static_cast<uint64_t>(
+                src.size
+            );
+
+        const uint64_t sectionEnd =
+            sectionOffset +
+            sectionSize;
+
+
+        if (
+            sectionOffset >
+            static_cast<uint64_t>(data.size())
+        )
+        {
+            std::printf(
+                "[ELF] Section %u offset outside file\n",
+                i
+            );
+
+            return false;
+        }
+
+
+        if (
+            sectionEnd >
+            static_cast<uint64_t>(data.size())
+        )
+        {
+            std::printf(
+                "[ELF] Section %u exceeds file\n",
+                i
+            );
+
+            return false;
+        }
 
 
         sectionList.push_back(

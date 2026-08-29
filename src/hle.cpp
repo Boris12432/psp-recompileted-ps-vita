@@ -14,16 +14,6 @@ static void hleTest(
     ARMCPU& cpu
 )
 {
-    std::printf(
-        "[HLE] Test function\n"
-    );
-
-    /*
-     * ARM ABI:
-     *
-     * R0-R3 = arguments
-     * R0    = return value
-     */
 
     uint32_t value =
         cpu.r[0];
