@@ -1,20 +1,26 @@
 #include "arm_engine.h"
 #include "thumb_decoder.h"
-#include "arm_decoder.h"
+
 
 // ============================================================
 // Fetch
 // ============================================================
 
-uint32_t ARMEngine::fetch32(uint32_t address) const
+uint32_t ARMEngine::fetch32(
+    uint32_t address
+) const
 {
     return memory.read32(address);
 }
 
-uint16_t ARMEngine::fetch16(uint32_t address) const
+
+uint16_t ARMEngine::fetch16(
+    uint32_t address
+) const
 {
     return memory.read16(address);
 }
+
 
 // ============================================================
 // Step
@@ -22,102 +28,97 @@ uint16_t ARMEngine::fetch16(uint32_t address) const
 
 bool ARMEngine::step()
 {
-    // PC текущей инструкции.
-    // Сохраняем отдельно, потому что сама инструкция
-    // может изменить R15.
-    const uint32_t realPC = cpu.r[15];
+    // --------------------------------------------------------
+    // Real address of current instruction
+    // --------------------------------------------------------
+
+    uint32_t realPC =
+        cpu.r[15];
+
 
     IRInstruction ir;
 
-    // ========================================================
-    // THUMB / THUMB-2
-    // ========================================================
 
     if (cpu.T)
     {
-        const uint16_t first = fetch16(realPC);
+        // ------------------------------------------------
+        // Thumb state: fetch/decode a 16-bit instruction.
+        //
+        // Fetching this as a 32-bit ARM word (the previous
+        // behaviour) silently misinterpreted every Thumb
+        // instruction as ARM, which is a different encoding
+        // entirely.
+        // ------------------------------------------------
 
-        // ----------------------------------------------------
-        // Thumb-2 32-bit instruction
-        // ----------------------------------------------------
+        uint16_t instruction =
+            fetch16(realPC);
 
-        if (ThumbDecoder::is32BitPrefix(first))
-        {
-            const uint16_t second =
-                fetch16(realPC + 2);
+        ir =
+            ThumbDecoder::decode(instruction);
+    }
+    else
+    {
+        // ------------------------------------------------
+        // ARM state: fetch/decode a 32-bit instruction.
+        // ------------------------------------------------
 
-            ir = ThumbDecoder::decode32(
-                first,
-                second
-            );
+        uint32_t instruction =
+            fetch32(realPC);
 
-            ir.address = realPC;
-
-            const bool pcChanged =
-                interpreter.execute(ir);
-
-            if (!pcChanged)
-            {
-                cpu.r[15] = realPC + 4;
-            }
-
-            return true;
-        }
-
-        // ----------------------------------------------------
-        // Thumb 16-bit instruction
-        // ----------------------------------------------------
-
-        ir = ThumbDecoder::decode(first);
-
-        ir.address = realPC;
-
-        const bool pcChanged =
-            interpreter.execute(ir);
-
-        if (!pcChanged)
-        {
-            cpu.r[15] = realPC + 2;
-        }
-
-        return true;
+        ir =
+            ARMDecoder::decode(instruction);
     }
 
-    // ========================================================
-    // ARM 32-bit
-    // ========================================================
 
-    const uint32_t instruction =
-        fetch32(realPC);
+    // ----------------------------------------------------
+    // Save real instruction address
+    // ----------------------------------------------------
 
-    ir = ARMDecoder::decode(
-        instruction
-    );
+    ir.address =
+        realPC;
 
-    ir.address = realPC;
-
-    const bool pcChanged =
+    bool pcChanged =
         interpreter.execute(ir);
+
+
+    // ----------------------------------------------------
+    // Sequential PC update
+    // ----------------------------------------------------
 
     if (!pcChanged)
     {
-        cpu.r[15] = realPC + 4;
-    }
+        if (cpu.T)
+        {
+            cpu.r[15] =
+                realPC + 2;
+        }
 
+        else
+        {
+            cpu.r[15] =
+                realPC + 4;
+        }
+
+    }
     return true;
+
 }
 
 // ============================================================
 // Run
 // ============================================================
 
-void ARMEngine::run(uint32_t maxInstructions)
+void ARMEngine::run(
+    uint32_t maxInstructions
+)
 {
-    for (uint32_t i = 0; i < maxInstructions; ++i)
+    for (
+        uint32_t i = 0;
+        i < maxInstructions;
+        ++i
+    )
     {
         if (!step())
-        {
             break;
-        }
     }
 }

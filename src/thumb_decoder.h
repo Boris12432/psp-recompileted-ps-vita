@@ -13,15 +13,6 @@ public:
         uint16_t instruction
     );
 
-    static IRInstruction decode32(
-        uint16_t first,
-        uint16_t second
-    );
-
-    // НОВОЕ
-    static bool is32BitPrefix(
-        uint16_t instruction
-    );
 
 private:
 
@@ -55,16 +46,5 @@ private:
 
     static IRInstruction decodeBranch(
         uint16_t instruction
-    );
-
-    static IRInstruction decode32DataProcessing(
-        uint16_t first,
-        uint16_t second
-    );
-
-    // НОВОЕ
-    static IRInstruction decode32Branch(
-        uint16_t first,
-        uint16_t second
     );
 };

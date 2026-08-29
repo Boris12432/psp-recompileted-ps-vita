@@ -58,10 +58,20 @@ static void dump32(
     }
 }
 
-int main()
+int main(int argc, char** argv)
 {
+    if (argc < 2)
+    {
+        std::cerr
+            << "Usage: "
+            << (argc > 0 ? argv[0] : "vita_self")
+            << " <path-to-eboot.bin>\n";
+
+        return 1;
+    }
+
     const char* filename =
-        "C:\\GAMES\\PCSE00120\\eboot.bin";
+        argv[1];
 
     std::ifstream f(
         filename,
@@ -71,7 +81,9 @@ int main()
     if (!f)
     {
         std::cerr
-            << "Cannot open eboot.bin\n";
+            << "Cannot open "
+            << filename
+            << "\n";
 
         return 1;
     }

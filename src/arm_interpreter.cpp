@@ -13,6 +13,7 @@
 
 uint32_t ARMInterpreter::operand2(
     const Operand2& op,
+    uint32_t currentAddress,
     bool* carryOut)
 {
     // --------------------------------------------------------
@@ -31,10 +32,13 @@ uint32_t ARMInterpreter::operand2(
 
     // --------------------------------------------------------
     // Register operand
+    //
+    // If Rm is PC, real ARM hardware presents (address + 8),
+    // not the raw stored r[15] value (pipeline effect).
     // --------------------------------------------------------
 
     uint32_t value =
-        cpu.r[op.rm];
+        readReg(op.rm, currentAddress);
 
     uint32_t amount;
 
@@ -67,7 +71,8 @@ uint32_t ARMInterpreter::operand2(
             value,
             op.shift,
             amount,
-            cpu.C
+            cpu.C,
+            !op.shiftImmediate
         );
 
 
@@ -149,6 +154,7 @@ bool ARMInterpreter::execute(
             uint32_t op2 =
                 operand2(
                     ir.operand2,
+                    ir.address,
                     &shifterCarry
                 );
 
@@ -179,6 +185,7 @@ bool ARMInterpreter::execute(
             uint32_t op2 =
                 operand2(
                     ir.operand2,
+                    ir.address,
                     &shifterCarry
                 );
 
@@ -208,12 +215,13 @@ bool ARMInterpreter::execute(
             uint32_t op2 =
                 operand2(
                     ir.operand2,
+                    ir.address,
                     &shifterCarry
                 );
 
             auto result =
                 addWithCarry(
-                    cpu.r[ir.rn],
+                    readReg(ir.rn, ir.address),
                     op2,
                     false
                 );
@@ -243,12 +251,13 @@ bool ARMInterpreter::execute(
             uint32_t op2 =
                 operand2(
                     ir.operand2,
+                    ir.address,
                     &shifterCarry
                 );
 
             auto result =
                 addWithCarry(
-                    cpu.r[ir.rn],
+                    readReg(ir.rn, ir.address),
                     op2,
                     cpu.C
                 );
@@ -278,12 +287,13 @@ bool ARMInterpreter::execute(
             uint32_t op2 =
                 operand2(
                     ir.operand2,
+                    ir.address,
                     &shifterCarry
                 );
 
             auto result =
                 addWithCarry(
-                    cpu.r[ir.rn],
+                    readReg(ir.rn, ir.address),
                     ~op2,
                     true
                 );
@@ -317,13 +327,14 @@ bool ARMInterpreter::execute(
             uint32_t op2 =
                 operand2(
                     ir.operand2,
+                    ir.address,
                     &shifterCarry
                 );
 
             auto result =
                 addWithCarry(
                     op2,
-                    ~cpu.r[ir.rn],
+                    ~readReg(ir.rn, ir.address),
                     true
                 );
 
@@ -352,12 +363,13 @@ bool ARMInterpreter::execute(
             uint32_t op2 =
                 operand2(
                     ir.operand2,
+                    ir.address,
                     &shifterCarry
                 );
 
             auto result =
                 addWithCarry(
-                    cpu.r[ir.rn],
+                    readReg(ir.rn, ir.address),
                     ~op2,
                     cpu.C
                 );
@@ -389,13 +401,14 @@ bool ARMInterpreter::execute(
             uint32_t op2 =
                 operand2(
                     ir.operand2,
+                    ir.address,
                     &shifterCarry
                 );
 
             auto result =
                 addWithCarry(
                     op2,
-                    ~cpu.r[ir.rn],
+                    ~readReg(ir.rn, ir.address),
                     cpu.C
                 );
 
@@ -417,7 +430,7 @@ bool ARMInterpreter::execute(
         case IROp::MUL:
         {
             uint32_t result =
-                cpu.r[ir.rm] *
+                readReg(ir.rm, ir.address) *
                 cpu.r[ir.rs];
 
             cpu.r[ir.rd] =
@@ -434,11 +447,11 @@ bool ARMInterpreter::execute(
         case IROp::MLA: {
             
             uint32_t result =
-                cpu.r[ir.rm] *
+                readReg(ir.rm, ir.address) *
                 cpu.r[ir.rs];
 
             result +=
-                cpu.r[ir.rn];
+                readReg(ir.rn, ir.address);
 
             cpu.r[ir.rd] =
                 result;
@@ -454,7 +467,7 @@ bool ARMInterpreter::execute(
         case IROp::UMULL:
         {
             uint64_t result =
-                static_cast<uint64_t>(cpu.r[ir.rm]) *
+                static_cast<uint64_t>(readReg(ir.rm, ir.address)) *
                 static_cast<uint64_t>(cpu.r[ir.rs]);
 
             cpu.r[ir.rd] =
@@ -479,7 +492,7 @@ bool ARMInterpreter::execute(
         {
             int64_t result =
                 static_cast<int64_t>(
-                    static_cast<int32_t>(cpu.r[ir.rm])
+                    static_cast<int32_t>(readReg(ir.rm, ir.address))
                 ) *
                 static_cast<int64_t>(
                     static_cast<int32_t>(cpu.r[ir.rs])
@@ -519,11 +532,12 @@ bool ARMInterpreter::execute(
             uint32_t op2 =
                 operand2(
                     ir.operand2,
+                    ir.address,
                     &shifterCarry
                 );
 
             uint32_t result =
-                cpu.r[ir.rn] & op2;
+                readReg(ir.rn, ir.address) & op2;
 
             cpu.r[ir.rd] =
                 result;
@@ -549,11 +563,12 @@ bool ARMInterpreter::execute(
             uint32_t op2 =
                 operand2(
                     ir.operand2,
+                    ir.address,
                     &shifterCarry
                 );
 
             uint32_t result =
-                cpu.r[ir.rn] | op2;
+                readReg(ir.rn, ir.address) | op2;
 
             cpu.r[ir.rd] =
                 result;
@@ -579,11 +594,12 @@ bool ARMInterpreter::execute(
             uint32_t op2 =
                 operand2(
                     ir.operand2,
+                    ir.address,
                     &shifterCarry
                 );
 
             uint32_t result =
-                cpu.r[ir.rn] ^ op2;
+                readReg(ir.rn, ir.address) ^ op2;
 
             cpu.r[ir.rd] =
                 result;
@@ -609,11 +625,12 @@ bool ARMInterpreter::execute(
             uint32_t op2 =
                 operand2(
                     ir.operand2,
+                    ir.address,
                     &shifterCarry
                 );
 
             uint32_t result =
-                cpu.r[ir.rn] & ~op2;
+                readReg(ir.rn, ir.address) & ~op2;
 
             cpu.r[ir.rd] =
                 result;
@@ -639,12 +656,13 @@ bool ARMInterpreter::execute(
             uint32_t op2 =
                 operand2(
                     ir.operand2,
+                    ir.address,
                     &shifterCarry
                 );
 
             auto result =
                 addWithCarry(
-                    cpu.r[ir.rn],
+                    readReg(ir.rn, ir.address),
                     ~op2,
                     true
                 );
@@ -668,12 +686,13 @@ bool ARMInterpreter::execute(
             uint32_t op2 =
                 operand2(
                     ir.operand2,
+                    ir.address,
                     &shifterCarry
                 );
 
             auto result =
                 addWithCarry(
-                    cpu.r[ir.rn],
+                    readReg(ir.rn, ir.address),
                     op2,
                     false
                 );
@@ -697,11 +716,12 @@ bool ARMInterpreter::execute(
             uint32_t op2 =
                 operand2(
                     ir.operand2,
+                    ir.address,
                     &shifterCarry
                 );
 
             uint32_t result =
-                cpu.r[ir.rn] & op2;
+                readReg(ir.rn, ir.address) & op2;
 
             cpu.setNZ(result);
 
@@ -721,11 +741,12 @@ bool ARMInterpreter::execute(
             uint32_t op2 =
                 operand2(
                     ir.operand2,
+                    ir.address,
                     &shifterCarry
                 );
 
             uint32_t result =
-                cpu.r[ir.rn] ^ op2;
+                readReg(ir.rn, ir.address) ^ op2;
 
             cpu.setNZ(result);
 
@@ -742,7 +763,7 @@ bool ARMInterpreter::execute(
         case IROp::LDM: {
 
             uint32_t base =
-                cpu.r[ir.rn];
+                readReg(ir.rn, ir.address);
 
             uint32_t registerList =
                 ir.registerList;
@@ -845,7 +866,7 @@ bool ARMInterpreter::execute(
         case IROp::STM: {
 
             uint32_t base =
-                cpu.r[ir.rn];
+                readReg(ir.rn, ir.address);
 
             uint32_t count =
                 0;
@@ -910,7 +931,7 @@ bool ARMInterpreter::execute(
         case IROp::LDR: {
 
             uint32_t base =
-                cpu.r[ir.rn];
+                readReg(ir.rn, ir.address);
 
 
             // ------------------------------------------------
@@ -933,6 +954,7 @@ bool ARMInterpreter::execute(
                 offset =
                     operand2(
                         ir.operand2,
+                        ir.address,
                         &ignoredCarry
                     );
             }
@@ -1063,7 +1085,7 @@ bool ARMInterpreter::execute(
         case IROp::STR: {
 
             uint32_t base =
-                cpu.r[ir.rn];
+                readReg(ir.rn, ir.address);
 
 
             // ------------------------------------------------
@@ -1086,6 +1108,7 @@ bool ARMInterpreter::execute(
                 offset =
                     operand2(
                         ir.operand2,
+                        ir.address,
                         &ignoredCarry
                     );
             }
@@ -1179,6 +1202,7 @@ bool ARMInterpreter::execute(
             uint32_t value =
                 operand2(
                     ir.operand2,
+                    ir.address,
                     &shifterCarry
                 );
 
@@ -1299,7 +1323,7 @@ bool ARMInterpreter::execute(
         case IROp::BX: {
 
             uint32_t target =
-                cpu.r[ir.rm];
+                readReg(ir.rm, ir.address);
 
             cpu.T =
                 (target & 1u) != 0;

@@ -7,13 +7,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CORE_SOURCES
     src/arm_decoder.cpp
+    src/thumb_decoder.cpp
     src/arm_interpreter.cpp
     src/vita_elf.cpp
+    src/mips.cpp
+    src/mips_backend.cpp
     src/hle.cpp
     src/hle_dispatcher.cpp
     src/hle_ctrl.cpp
     src/hle_registry.cpp
-    src/thumb_decoder.cpp
     src/arm_memory.cpp
     src/arm_engine.cpp
     src/arm_cpu.cpp

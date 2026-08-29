@@ -358,13 +358,15 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
   <ItemGroup>
     <ClCompile Include="C:\Users\Andre\OneDrive\Рабочий стол\psp lexer ps vita\psp recompileted ps vita\src\tests.cpp" />
     <ClCompile Include="C:\Users\Andre\OneDrive\Рабочий стол\psp lexer ps vita\psp recompileted ps vita\src\arm_decoder.cpp" />
+    <ClCompile Include="C:\Users\Andre\OneDrive\Рабочий стол\psp lexer ps vita\psp recompileted ps vita\src\thumb_decoder.cpp" />
     <ClCompile Include="C:\Users\Andre\OneDrive\Рабочий стол\psp lexer ps vita\psp recompileted ps vita\src\arm_interpreter.cpp" />
     <ClCompile Include="C:\Users\Andre\OneDrive\Рабочий стол\psp lexer ps vita\psp recompileted ps vita\src\vita_elf.cpp" />
+    <ClCompile Include="C:\Users\Andre\OneDrive\Рабочий стол\psp lexer ps vita\psp recompileted ps vita\src\mips.cpp" />
+    <ClCompile Include="C:\Users\Andre\OneDrive\Рабочий стол\psp lexer ps vita\psp recompileted ps vita\src\mips_backend.cpp" />
     <ClCompile Include="C:\Users\Andre\OneDrive\Рабочий стол\psp lexer ps vita\psp recompileted ps vita\src\hle.cpp" />
     <ClCompile Include="C:\Users\Andre\OneDrive\Рабочий стол\psp lexer ps vita\psp recompileted ps vita\src\hle_dispatcher.cpp" />
     <ClCompile Include="C:\Users\Andre\OneDrive\Рабочий стол\psp lexer ps vita\psp recompileted ps vita\src\hle_ctrl.cpp" />
     <ClCompile Include="C:\Users\Andre\OneDrive\Рабочий стол\psp lexer ps vita\psp recompileted ps vita\src\hle_registry.cpp" />
-    <ClCompile Include="C:\Users\Andre\OneDrive\Рабочий стол\psp lexer ps vita\psp recompileted ps vita\src\thumb_decoder.cpp" />
     <ClCompile Include="C:\Users\Andre\OneDrive\Рабочий стол\psp lexer ps vita\psp recompileted ps vita\src\arm_memory.cpp" />
     <ClCompile Include="C:\Users\Andre\OneDrive\Рабочий стол\psp lexer ps vita\psp recompileted ps vita\src\arm_engine.cpp" />
     <ClCompile Include="C:\Users\Andre\OneDrive\Рабочий стол\psp lexer ps vita\psp recompileted ps vita\src\arm_cpu.cpp" />

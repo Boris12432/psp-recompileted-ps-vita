@@ -14,6 +14,16 @@ static void hleTest(
     ARMCPU& cpu
 )
 {
+    std::printf(
+        "[HLE] Test function\n"
+    );
+
+    /*
+     * ARM ABI:
+     *
+     * R0-R3 = arguments
+     * R0    = return value
+     */
 
     uint32_t value =
         cpu.r[0];
@@ -57,6 +67,26 @@ void HLE::handleSWI(
     uint32_t swiNumber
 )
 {
+    /*
+     * HLE::initialize() previously had to be called manually by
+     * whichever program used the interpreter, and nothing in the
+     * codebase actually called it - meaning the HLE function table
+     * was always empty at runtime and every SWI silently fell
+     * through to "unknown function".
+     *
+     * Guarantee initialization happens exactly once, on first use,
+     * regardless of which entry point (main, tests, future driver)
+     * is running.
+     */
+
+    static bool initialized = false;
+
+    if (!initialized)
+    {
+        initialized = true;
+        HLE::initialize();
+    }
+
     HLEDispatcher::instance().call(
         swiNumber,
         cpu

@@ -12,6 +12,7 @@
 #include "arm_cfg.h"
 #include "test_memory.h"
 #include "elf_loader.h"
+#include "mips_backend.h"
 
 static int tests = 0;
 static int passed = 0;
@@ -65,6 +66,114 @@ void test_branch()
     assert(cpu.r[15] == 0x1010);
 
     std::cout << "[OK] B\n";
+}
+
+static void dumpMIPS(
+    const std::vector<uint32_t>& code
+)
+{
+    std::printf(
+        "\n=== Generated MIPS ===\n"
+    );
+
+    for (
+        size_t i = 0;
+        i < code.size();
+        ++i
+    )
+    {
+        std::printf(
+            "%04zu: %08X\n",
+            i,
+            code[i]
+        );
+    }
+}
+
+
+void test_ARM_to_MIPS()
+{
+    std::printf(
+        "\n=== ARM -> IR -> MIPS ===\n"
+    );
+
+    std::vector<IRInstruction> block;
+
+
+    // --------------------------------------------------------
+    // MOV R0, #10
+    // --------------------------------------------------------
+
+    uint32_t mov0 =
+        0xE3A0000A;
+
+    IRInstruction ir1 =
+        ARMDecoder::decode(
+            mov0
+        );
+
+    block.push_back(ir1);
+
+
+    // --------------------------------------------------------
+    // MOV R1, #20
+    // --------------------------------------------------------
+
+    uint32_t mov1 =
+        0xE3A01014;
+
+    IRInstruction ir2 =
+        ARMDecoder::decode(
+            mov1
+        );
+
+    block.push_back(ir2);
+
+
+    // --------------------------------------------------------
+    // ADD R2, R0, R1
+    // --------------------------------------------------------
+
+    uint32_t add =
+        0xE0802001;
+
+    IRInstruction ir3 =
+        ARMDecoder::decode(
+            add
+        );
+
+    block.push_back(ir3);
+
+
+    // --------------------------------------------------------
+    // Backend
+    // --------------------------------------------------------
+
+    MIPSBackend backend;
+
+    bool result =
+        backend.translate(
+            block
+        );
+
+    if (!result)
+    {
+        std::printf(
+            "[TEST] ARM -> MIPS FAILED\n"
+        );
+
+        return;
+    }
+
+
+    dumpMIPS(
+        backend.code()
+    );
+
+
+    std::printf(
+        "[TEST] ARM -> MIPS PASSED\n"
+    );
 }
 
 static void testCFG()
@@ -1584,13 +1693,6 @@ int main()
     // ============================================================
     // CFG TESTS
     // ============================================================
-    cpu.T = false;
-    cpu.r[15] = 0x1000;
-    cpu.r[1] = 0x2001;
-    TEST(
-        "Thumb state is cleared",
-        cpu.T == false
-    );
 
     // ============================================================
     // FINAL
@@ -1610,6 +1712,8 @@ int main()
     testCFG();
 
     test_branch();
+
+    test_ARM_to_MIPS();
 
     getchar();
 

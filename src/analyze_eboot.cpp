@@ -37,10 +37,20 @@ static uint32_t read32be(
 }
 
 
-int main()
+int main(int argc, char** argv)
 {
+    if (argc < 2)
+    {
+        std::cerr
+            << "Usage: "
+            << (argc > 0 ? argv[0] : "analyze_eboot")
+            << " <path-to-eboot.bin>\n";
+
+        return 1;
+    }
+
     const char* filename =
-        "C:\\GAMES\\PCSE00120\\eboot.bin";
+        argv[1];
 
     std::ifstream file(
         filename,
@@ -50,7 +60,9 @@ int main()
     if (!file)
     {
         std::cerr
-            << "Cannot open eboot.bin\n";
+            << "Cannot open "
+            << filename
+            << "\n";
 
         return 1;
     }

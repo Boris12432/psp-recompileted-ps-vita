@@ -45,8 +45,35 @@ private:
     ARMMemory& memory;
 
 
+    /*
+     * Read a general-purpose register as a *source* operand.
+     *
+     * On real ARM hardware, reading R15 (PC) as a source operand
+     * (data-processing Rn/Rm, LDR/STR base register, BX target, etc.)
+     * yields (address of current instruction + 8) due to the
+     * classic 3-stage fetch/decode/execute pipeline - NOT the raw
+     * value stored in r[15].
+     *
+     * This must never be used for the *destination* register (Rd),
+     * since writing PC is a real branch, not a pipeline artifact.
+     */
+    uint32_t readReg(
+        int reg,
+        uint32_t currentAddress
+    ) const
+    {
+        if (reg == 15)
+        {
+            return currentAddress + 8;
+        }
+
+        return cpu.r[reg];
+    }
+
+
     uint32_t operand2(
         const Operand2& op,
+        uint32_t currentAddress,
         bool* carryOut
     );
 

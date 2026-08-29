@@ -26,6 +26,8 @@ public:
 
 private:
 
+    HLEDispatcher() = default;
+
     std::unordered_map<
         uint32_t,
         HLEFunction
